@@ -4,6 +4,7 @@ import Quiz from './containers/Quiz/Quiz'
 
 class App extends Component {
   render() {
+    console.log('DIMAN!')
     return (
       <Layout>
         <Quiz />
