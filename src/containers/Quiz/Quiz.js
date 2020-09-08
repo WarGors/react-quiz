@@ -13,6 +13,10 @@ class Quiz extends Component {
     quiz: questionList,
   }
 
+  componentDidMount() {
+    console.log(this.props.match.params.id)
+  }
+
   onAnswerClickHandler = answerId => {
     if (this.state.answerState) {
       const key = Object.keys(this.state.answerState)[0]
