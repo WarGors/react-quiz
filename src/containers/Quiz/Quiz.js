@@ -73,6 +73,10 @@ class Quiz extends Component {
     })
   }
 
+  BackToList = () => {
+    this.props.history.push('/')
+  }
+
   render() {
     return (
       <div className={classes.Quiz}>
@@ -85,6 +89,7 @@ class Quiz extends Component {
                       results={this.state.results}
                       quiz={this.state.quiz}
                       onRetry={this.retryHandler}
+                      BackToList={this.BackToList}
                   />
               </Fragment>
              : <Fragment>
