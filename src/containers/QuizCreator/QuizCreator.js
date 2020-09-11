@@ -1,9 +1,10 @@
-import React from 'react'
+import React, {Fragment} from 'react'
 import classes from './QuizCreator.css'
 import Button from '../../components/UI/Button/Button'
 import {createControl, validate, validateForm} from '../../form/formFramework'
 import Input from '../../components/UI/Input/Input'
 import Select from '../../components/UI/Select/Select'
+import axios from '../../Axios/Axios'
 
 function createOptionControls(num) {
   return createControl({
@@ -31,9 +32,14 @@ function createFormControls() {
 export default class QuizCreator extends React.Component {
   state = {
     quiz: [],
-    rightAnserId: 1,
+    rightAnswerId: 1,
     isFormValid: false,
-    formControls: createFormControls()
+    formControls: createFormControls(),
+    quizNameControl: createControl({
+      label: 'Введите название теста',
+      errorMessage: 'Название не может быть пустым',
+      type: 'text'
+    }, {required: true})
   }
 
   submitHandler(event) {
@@ -49,7 +55,7 @@ export default class QuizCreator extends React.Component {
     const questionItem = {
       question: question.value,
       id: this.state.quiz.length + 1,
-      rightAnserId: this.state.rightAnserId,
+      rightAnswerId: this.state.rightAnswerId,
       answers: [
         {text: option1.value, id: option1.id},
         {text: option2.value, id: option2.id},
@@ -62,16 +68,36 @@ export default class QuizCreator extends React.Component {
 
     this.setState({
       quiz,
-      rightAnserId: 1,
+      rightAnswerId: 1,
       isFormValid: false,
       formControls: createFormControls()
     })
   }
 
-  createQuizHandler = (event) => {
+  createQuizHandler = async event => {
     event.preventDefault()
 
-    console.log(this.state.quiz)
+    const quizName = this.state.quizNameControl.value
+    const quiz = [ quizName, ...this.state.quiz ]
+    
+
+    try {
+      await axios.post('/quiz/tests.json', quiz)
+
+      this.setState({
+        quiz: [],
+        rightAnswerId: 1,
+        isFormValid: false,
+        formControls: createFormControls(),
+        quizNameControl: createControl({
+          label: 'Введите название теста',
+          errorMessage: 'Название не может быть пустым',
+          type: 'text'
+        }, {required: true})
+      })
+    } catch (err) {
+      console.log(err)
+    }
   }
 
   changeHandler = (value, controlName) => {
@@ -88,6 +114,18 @@ export default class QuizCreator extends React.Component {
     this.setState({
       formControls, 
       isFormValid: validateForm(formControls)
+    })
+  }
+
+  changeNameHandler = value => {
+    const quizNameControl = { ...this.state.quizNameControl }
+
+    quizNameControl.touched = true
+    quizNameControl.value = value
+    quizNameControl.valid = validate(quizNameControl.value, quizNameControl.validation)
+
+    this.setState({
+      quizNameControl
     })
   }
 
@@ -115,8 +153,8 @@ export default class QuizCreator extends React.Component {
   }
 
   selectChangeHandler = (event) => {
-    const rightAnserId = +event.target.value
-    this.setState({rightAnserId})
+    const rightAnswerId = +event.target.value
+    this.setState({rightAnswerId})
   }
   
   render() {
@@ -124,7 +162,7 @@ export default class QuizCreator extends React.Component {
       <Select 
         label={'Выберите номер правильного варианта ответа'}
         onChange={this.selectChangeHandler}
-        value={this.state.rightAnserId}
+        value={this.state.rightAnswerId}
         options={[
           {text: 1, value: 1},
           {text: 2, value: 2},
@@ -133,12 +171,31 @@ export default class QuizCreator extends React.Component {
         ]}
       />
     )
+    const control = this.state.quizNameControl
+    const quizName = (
+      <Fragment>
+        <Input 
+          value={control.value}
+          type={control.type}
+          label={control.label}
+          errorMessage={control.errorMessage}
+          valid={control.valid}
+          touched={control.touched}
+          shouldValidate={!!control.validation}
+          onChange={event => this.changeNameHandler(event.target.value)}
+        />
+        <hr />
+        <hr />
+      </Fragment>
+    )
+    const allowPostTest = this.state.quiz.length !== 0 && this.state.quizNameControl.valid
 
     return (
       <div className={classes.QuizCreator}>
         <div>
           <h1>Создание теста</h1>
           <form onSubmit={(event) => this.submitHandler(event)}>
+            { quizName }
             { this.renderControls() }
             { select }
 
@@ -151,7 +208,7 @@ export default class QuizCreator extends React.Component {
             
             <Button 
               onClick={this.createQuizHandler}
-              disabled={this.state.quiz.length === 0}
+              disabled={!allowPostTest}
             >
               Создать тест
             </Button>

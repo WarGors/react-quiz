@@ -2,25 +2,47 @@ import React, {Component, Fragment} from 'react'
 import classes from './Quiz.css'
 import ActiveQuiz from '../../components/ActiveQuiz/ActiveQuiz'
 import FinishedQuiz from '../../components/FinishedQuiz/FinishedQuiz'
-import questionList from "../../questions/questions";
+import axios from '../../Axios/Axios'
+import Loader from '../../components/UI/Loader/Loader'
 
 class Quiz extends Component {
   state = {
-    results: {}, // {[id]: success error}
+    isLoaded: false,
+    results: {},
     isFinished: false,
     activeQuestion: 0,
-    answerState: null, // { [id]: 'success' 'error' }
-    quiz: questionList,
+    answerState: null,
+    quiz: [],
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     console.log(this.props.match.params.id)
+    const response =  await axios.get(`/quiz/tests/${this.props.match.params.id}.json`)
+    const quiz = [...response.data]
+    quiz.shift()
+    this.setState({quiz, isLoaded: true})
+  }
+
+  questionSwitchHandler(ms) {
+    const timeout = window.setTimeout(() => {
+      if (this.isQuizFinished()) {
+        this.setState({
+          isFinished: true
+        })
+      } else {
+        this.setState({
+          activeQuestion: this.state.activeQuestion + 1,
+          answerState: null
+        })
+      }
+      window.clearTimeout(timeout)
+    }, ms)
   }
 
   onAnswerClickHandler = answerId => {
     if (this.state.answerState) {
       const key = Object.keys(this.state.answerState)[0]
-      if (this.state.answerState[key] === 'success') {
+      if (this.state.answerState[key]) {
         return
       }
     }
@@ -38,25 +60,17 @@ class Quiz extends Component {
         results
       })
 
-      const timeout = window.setTimeout(() => {
-        if (this.isQuizFinished()) {
-          this.setState({
-            isFinished: true
-          })
-        } else {
-          this.setState({
-            activeQuestion: this.state.activeQuestion + 1,
-            answerState: null
-          })
-        }
-        window.clearTimeout(timeout)
-      }, 500)
+      this.questionSwitchHandler(500)
+
     } else {
       results[question.id] = 'error'
       this.setState({
         answerState: {[answerId]: 'error'},
         results
       })
+
+      this.questionSwitchHandler(500)
+
     }
   }
 
@@ -91,18 +105,20 @@ class Quiz extends Component {
                       onRetry={this.retryHandler}
                       BackToList={this.BackToList}
                   />
-              </Fragment>
-             : <Fragment>
-                  <h1>Дайте ответы на все вопросы</h1>
-                  <ActiveQuiz
-                      answers={this.state.quiz[this.state.activeQuestion].answers}
-                      question={this.state.quiz[this.state.activeQuestion].question}
-                      onAnswerClick={this.onAnswerClickHandler}
-                      quizLength={this.state.quiz.length}
-                      answerNumber={this.state.activeQuestion + 1}
-                      state={this.state.answerState}
-                  />
-             </Fragment>
+                </Fragment>
+             : this.state.isLoaded
+                ? <Fragment>
+                    <h1>Дайте ответы на все вопросы</h1>
+                    <ActiveQuiz
+                        answers={this.state.quiz[this.state.activeQuestion].answers}
+                        question={this.state.quiz[this.state.activeQuestion].question}
+                        onAnswerClick={this.onAnswerClickHandler}
+                        quizLength={this.state.quiz.length}
+                        answerNumber={this.state.activeQuestion + 1}
+                        state={this.state.answerState}
+                    />
+                  </Fragment>
+                : <Loader />
           }
         </div>
       </div>
