@@ -1,57 +1,53 @@
-import React from 'react'
-import classes from './HomePage.css'
-import {NavLink} from 'react-router-dom'
-import axios from '../../Axios/Axios'
-import Loader from '../../components/UI/Loader/Loader'
+import React from "react";
+import classes from "./HomePage.css";
+import { NavLink } from "react-router-dom";
+import Loader from "../../components/UI/Loader/Loader";
+import {connect} from 'react-redux'
+import {fetchQuizes} from '../../store/actions/quiz'
 
-export default class HomePage extends React.Component {
-  state = {
-    quizes: [],
-    isLoaded: false
+class HomePage extends React.Component {
+ 
+  componentDidMount() {
+    this.props.fetchQuizes()
   }
 
-  async componentDidMount() {
-    try {
-      const response = await axios.get('/quiz/tests.json')
-      const quizes = []
-      Object.keys(response.data).forEach((key, index) => {
-        quizes.push({
-          id: key,
-          name: `${index + 1}. ${response.data[key][0]}`
-        })
-      })
-      this.setState({quizes, isLoaded: true})
-    } catch (e) {
-      console.log(e)
-    }
-  }
-
-  listCreator = () => this.state.quizes.map(item => {
-    return (
-      <li key={item.id}>
-        <NavLink to={`/quiz/${item.id}`}>
-          {item.name}
-        </NavLink>
-      </li>
-    )
-  })
+  listCreator = () =>
+    this.props.quizes.map((item) => {
+      return (
+        <li key={item.id}>
+          <NavLink to={`/quiz/${item.id}`}>{item.name}</NavLink>
+        </li>
+      );
+    });
 
   render() {
+    // console.log(this.props)
     return (
       <div className={classes.HomePage}>
-        {
-          this.state.isLoaded
-            ? <div>
-                <h1>Список тестов</h1>
-                <ul>
-                  {this.listCreator()}
-                </ul>
-              </div>
-            : <Loader />
-        }
-        
-        
+        {this.props.isLoaded && this.props.quizes.length !== 0 ? (
+          <div>
+            <h1>Список тестов</h1>
+            <ul>{this.listCreator()}</ul>
+          </div>
+        ) : (
+          <Loader />
+        )}
       </div>
-    )
+    );
   }
 }
+
+function mapStateToProps(state) {
+  return {
+    quizes: state.quiz.quizes,
+    isLoaded: state.quiz.isLoaded,
+  }
+}
+
+function mapDispatchToProps(dispatch) {
+  return {
+    fetchQuizes: () => dispatch(fetchQuizes())
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(HomePage)
